@@ -1,0 +1,2 @@
+../Core/Src/config.c:6:6:print_msg	16	static
+../Core/Src/config.c:10:6:uart_send_bin	16	static
