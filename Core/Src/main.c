@@ -65,9 +65,9 @@ SSD1306_t oled2;
 
 //Scope Settings
 uint32_t hdiv = 100; //in us
-uint32_t hoffset = 100;
-uint32_t vdiv = 100; //in mV
-uint32_t voffset = 100; //in mV
+int16_t hoffset = 100; //in us
+uint32_t vdiv = 1500; //in mV
+int16_t voffset = 100; //in mV
 
 //test wave
 uint16_t testSin[128];
@@ -145,8 +145,8 @@ int main(void)
   SSD1306_UpdateScreen(&oled2);
 
   buffer_Set(&oled1, Scopebackground);
-  for (int i = 0; i < 128; i++)testSin[i] = (31 * (sin(i / 10.0)+1)); // full range
-  draw_Wave(&oled1, testSin, hdiv, vdiv);
+  for (int i = 0; i < 128; i++)testSin[i] = (900 * (sin(i / 10.0)))+2048; // ~ 2.2V
+  draw_Wave(&oled1, testSin, vdiv, voffset);
   SSD1306_UpdateScreen(&oled1);
 
   /* USER CODE END 2 */

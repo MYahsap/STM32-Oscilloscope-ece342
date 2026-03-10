@@ -152,13 +152,13 @@ HAL_StatusTypeDef SSD1306_Puts(SSD1306_t* dev, char* str, FontDef_t* Font) {
     return HAL_OK;
 }
 
-void draw_Wave(SSD1306_t* dev, uint16_t waveBuffer[], uint32_t hdiv, uint32_t vdiv){
+void draw_Wave(SSD1306_t* dev, uint16_t waveBuffer[], uint32_t vdiv, uint32_t voffset){
 	uint16_t i;
-	int16_t x;
-	uint8_t toDraw = 0;
+	float x;
+	uint8_t toDraw;
 	for (i = 0; i < 128; i++){
-		x = (waveBuufer[i] - 2048);
-		toDraw = SSD1306_HEIGHT-waveBuffer[i];
+		x = ((waveBuffer[i] - 2048) * 2500.0 / vdiv) + 2048 + (voffset / 2500);
+		toDraw = SSD1306_HEIGHT-(x/64);
 		if (toDraw < SSD1306_HEIGHT){
 			SSD1306_DrawPixel(dev, i, toDraw, SSD1306_COLOR_WHITE);
 		}

@@ -10,4 +10,4 @@
 ../Core/Src/ssd1306.c:118:6:SSD1306_Putc	6
 ../Core/Src/ssd1306.c:136:19:SSD1306_Puts	4
 ../Core/Src/ssd1306.c:155:6:draw_Wave	3
-../Core/Src/ssd1306.c:166:6:buffer_Set	1
+../Core/Src/ssd1306.c:168:6:buffer_Set	1

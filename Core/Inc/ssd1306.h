@@ -48,7 +48,7 @@ void SSD1306_Stopscroll(SSD1306_t* dev);
 void SSD1306_Putc(SSD1306_t* dev, uint16_t x, uint16_t y, char ch, FontDef_t* Font);
 HAL_StatusTypeDef SSD1306_Puts(SSD1306_t* dev, char* str, FontDef_t* Font);
 
-void draw_Wave(SSD1306_t* dev, uint16_t waveBuffer[], uint32_t hdiv, uint32_t vdiv);
+void draw_Wave(SSD1306_t* dev, uint16_t waveBuffer[], uint32_t vdiv, uint32_t voffset);
 void buffer_Set(SSD1306_t* dev, uint8_t sourceBuffer[]);
 
 #endif
