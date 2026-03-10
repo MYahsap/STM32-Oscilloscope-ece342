@@ -38,16 +38,25 @@ void Scope_Stop(void)
     HAL_ADC_Stop_DMA(&hadc1);
 }
 
-void Scope_SetSamplingFreq(uint32_t fs_hz)
+void Scope_SetSamplingPeriodUs(uint32_t period_us)
 {
-    if (fs_hz == 0)
+    if (period_us == 0)
     {
-        fs_hz = 1;
+        period_us = 1;
     }
 
     uint32_t psc = htim2.Init.Prescaler;
     uint32_t tim_cnt_clk = scope_timer_clk_hz / (psc + 1);
-    uint32_t arr = (tim_cnt_clk / fs_hz) - 1;
+
+//  ARR = (period_us * tim_cnt_clk)/1e6 - 1
+    uint32_t arr = ((uint64_t)period_us * tim_cnt_clk) / 1000000ULL;
+
+    if (arr == 0)
+    {
+        arr = 1;
+    }
+
+    arr = arr - 1;
 
     __HAL_TIM_DISABLE(&htim2);
     __HAL_TIM_SET_AUTORELOAD(&htim2, arr);

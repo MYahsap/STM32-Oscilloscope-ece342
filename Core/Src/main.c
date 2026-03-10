@@ -22,10 +22,12 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <string.h>
+#include <math.h>
 #include "config.h"
 #include "scope.h"
 #include "ssd1306.h"
 #include "fonts.h"
+#include "background.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -57,8 +59,18 @@ UART_HandleTypeDef huart3;
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
+//OLED Screen
 SSD1306_t oled1;
 SSD1306_t oled2;
+
+//Scope Settings
+uint32_t hdiv = 100; //in us
+uint32_t hoffset = 100;
+uint32_t vdiv = 100; //in mV
+uint32_t voffset = 100; //in mV
+
+//test wave
+uint16_t testSin[128];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -122,18 +134,21 @@ int main(void)
   if (SSD1306_Init(&oled2, &hi2c2, SSD1306_I2C_ADDR) != 0) Error_Handler();
   SSD1306_Clear(&oled1);
   SSD1306_Clear(&oled2);
-
   SSD1306_UpdateScreen(&oled1);
   SSD1306_UpdateScreen(&oled2);
 
-  //Test oled
-  SSD1306_SetCursor(&oled1, 0, 0);
-  SSD1306_Puts(&oled1, "OLED on I2C1 \r\n waveform", &Font_7x10);
-  SSD1306_UpdateScreen(&oled1);
+  //Scope Init
 
+  //Test oled
   SSD1306_SetCursor(&oled2, 0, 0);
   SSD1306_Puts(&oled2, "OLED on I2C2 \r\n settings", &Font_7x10);
   SSD1306_UpdateScreen(&oled2);
+
+  buffer_Set(&oled1, Scopebackground);
+  for (int i = 0; i < 128; i++)testSin[i] = (31 * (sin(i / 10.0)+1)); // full range
+  draw_Wave(&oled1, testSin, hdiv, vdiv);
+  SSD1306_UpdateScreen(&oled1);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
