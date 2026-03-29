@@ -1,6 +1,9 @@
-../Core/Src/scope.c:11:6:Scope_Init	16	static
-../Core/Src/scope.c:16:6:Scope_Start	8	static
-../Core/Src/scope.c:35:6:Scope_Stop	8	static
-../Core/Src/scope.c:41:6:Scope_SetSamplingPeriodUs	48	static
-../Core/Src/scope.c:69:6:HAL_ADC_ConvHalfCpltCallback	16	static
-../Core/Src/scope.c:77:6:HAL_ADC_ConvCpltCallback	16	static
+../Core/Src/scope.c:26:6:Scope_Init	16	static
+../Core/Src/scope.c:31:6:Scope_SetTriggerLevel	16	static
+../Core/Src/scope.c:36:6:Scope_Start	8	static
+../Core/Src/scope.c:63:6:Scope_Stop	8	static
+../Core/Src/scope.c:69:6:Scope_SetSamplingPeriodUs	48	static
+../Core/Src/scope.c:97:13:Scope_CopyTriggeredWindow	32	static
+../Core/Src/scope.c:118:13:Scope_ProcessSamples	24	static
+../Core/Src/scope.c:148:6:HAL_ADC_ConvHalfCpltCallback	16	static
+../Core/Src/scope.c:159:6:HAL_ADC_ConvCpltCallback	16	static

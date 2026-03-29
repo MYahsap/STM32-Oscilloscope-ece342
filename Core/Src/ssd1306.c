@@ -165,6 +165,6 @@ void draw_Wave(SSD1306_t* dev, uint16_t waveBuffer[], uint32_t vdiv, uint32_t vo
 	}
 }
 
-void buffer_Set(SSD1306_t* dev, uint8_t sourceBuffer[]){
+void buffer_Set(SSD1306_t* dev, const uint8_t sourceBuffer[]){
 	memcpy(dev->buffer, sourceBuffer, SSD1306_WIDTH * SSD1306_HEIGHT / 8);
 }

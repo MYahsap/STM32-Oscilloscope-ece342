@@ -64,13 +64,20 @@ SSD1306_t oled1;
 SSD1306_t oled2;
 
 //Scope Settings
-uint32_t hdiv = 100; //in us
-int16_t hoffset = 100; //in us
-uint32_t vdiv = 1500; //in mV
-int16_t voffset = 100; //in mV
+uint32_t hdiv = 200; //in us
+int16_t hoffset = 0; //in us
+uint32_t vdiv = 2500; //in mV
+int16_t voffset = 0; //in mV
+uint32_t triglvl = 2500; //in adc
+
+//scope
+extern volatile uint16_t adc_buf[ADC_BUF_LEN];
+extern volatile uint8_t adc_half_ready;
+extern volatile uint8_t adc_full_ready;
 
 //test wave
 uint16_t testSin[128];
+char msg[64];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -138,6 +145,10 @@ int main(void)
   SSD1306_UpdateScreen(&oled2);
 
   //Scope Init
+  Scope_Init(84000000);    // example timer clock, use your real TIM2 input clock
+  Scope_SetSamplingPeriodUs(hdiv/32);   // 100 us = 10 kHz
+  Scope_SetTriggerLevel(triglvl);
+  Scope_Start();
 
   //Test oled
   SSD1306_SetCursor(&oled2, 0, 0);
@@ -155,6 +166,62 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+//	  if (HAL_GPIO_ReadPin(USER_Btn_GPIO_Port, USER_Btn_Pin) == GPIO_PIN_SET){
+//		  print_msg("trig!\r\n");
+//		  sprintf(msg, "PSC=%lu ARR=%lu fs=%lu\r\n",
+//		          htim2.Init.Prescaler,
+//		          __HAL_TIM_GET_AUTORELOAD(&htim2),
+//		          scope_current_fs);
+//		  print_msg(msg);
+//
+//
+//		  uint32_t t0, t1;
+//
+//		  adc_full_ready = 0;
+//		  adc_half_ready = 0;
+//		  Scope_Start();
+//
+//		  t0 = HAL_GetTick();
+//
+//		  while (adc_half_ready == 0){}
+//		  t1 = HAL_GetTick();
+//		  sprintf(msg, "half time = %lu ms\r\n", t1 - t0);
+//		  print_msg(msg);
+//
+//		  while (adc_full_ready == 0){}
+//		  t1 = HAL_GetTick();
+//		  sprintf(msg, "full time = %lu ms\r\n", t1 - t0);
+//		  print_msg(msg);
+//
+//		  for (int i = 0; i < ADC_BUF_LEN; i++) {
+//			  sprintf(msg, "%u ", adc_buf[i]);
+//			  print_msg(msg);
+//		  }
+//		  print_msg("\r\n");
+//
+//		  buffer_Set(&oled1, Scopebackground);
+//		  draw_Wave(&oled1, adc_buf, vdiv, voffset);
+//		  SSD1306_UpdateScreen(&oled1);
+//	  }
+
+	  if (display_buf_ready)
+	      {
+	          display_buf_ready = 0;
+
+//	          buffer_Set(&oled1, Scopebackground);
+	          SSD1306_Clear(&oled1);
+			  draw_Wave(&oled1, display_buf, vdiv, voffset);
+			  SSD1306_UpdateScreen(&oled1);
+
+//			  for (int i = 0; i < DISPLAY_BUF_LEN; i++)
+//				  {
+//					  sprintf(msg, "%u ", display_buf[i]);
+//					  print_msg(msg);
+//				  }
+//			  print_msg("\r\n");
+	          HAL_Delay(500);
+	          Scope_Start();
+	      }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -352,7 +419,7 @@ static void MX_TIM2_Init(void)
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 4294967295;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
   {
     Error_Handler();

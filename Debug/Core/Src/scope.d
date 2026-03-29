@@ -35,7 +35,7 @@ Core/Src/scope.o: ../Core/Src/scope.c ../Core/Inc/scope.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h \
- ../Core/Inc/main.h
+ ../Core/Inc/main.h ../Core/Inc/config.h
 ../Core/Inc/scope.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
@@ -75,3 +75,4 @@ Core/Src/scope.o: ../Core/Src/scope.c ../Core/Inc/scope.h \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h:
 ../Core/Inc/main.h:
+../Core/Inc/config.h:
