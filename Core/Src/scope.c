@@ -10,6 +10,8 @@ volatile uint16_t display_buf[DISPLAY_BUF_LEN];
 volatile uint8_t adc_half_ready = 0;
 volatile uint8_t adc_full_ready = 0;
 volatile uint8_t display_buf_ready = 0;
+volatile uint8_t scope_auto_triggered = 0;
+
 
 static uint32_t scope_timer_clk_hz = 0;
 uint32_t scope_current_fs = 0;
@@ -19,9 +21,15 @@ static uint8_t triggered = 0;
 static uint32_t trigger_index = 0;
 static uint32_t samples_after_trigger = 0;
 static uint16_t prev_sample = 0;
+static uint8_t buffer_primed = 0;
+static uint32_t samples_seen = 0;
+static uint32_t scope_start_tick_ms = 0;
+static const uint32_t scope_auto_trigger_timeout_ms = 1000;
 
 static void Scope_CopyTriggeredWindow(uint32_t trig_idx);
 static void Scope_ProcessSamples(uint32_t start, uint32_t end);
+static void Scope_CheckAutoTrigger(uint32_t latest_idx);
+
 
 void Scope_Init(uint32_t timer_clk_hz)
 {
@@ -38,11 +46,15 @@ void Scope_Start(void)
     adc_half_ready = 0;
     adc_full_ready = 0;
     display_buf_ready = 0;
+    scope_auto_triggered = 0;
 
     triggered = 0;
 	trigger_index = 0;
 	samples_after_trigger = 0;
-	prev_sample = adc_buf[ADC_BUF_LEN - 1];
+	prev_sample = 0;
+	buffer_primed = 0;
+	samples_seen = 0;
+	scope_start_tick_ms = HAL_GetTick();
 
     HAL_TIM_Base_Stop(&htim2);
     HAL_ADC_Stop_DMA(&hadc1);
@@ -115,15 +127,48 @@ static void Scope_CopyTriggeredWindow(uint32_t trig_idx)
     Scope_Stop();
 }
 
+static void Scope_CheckAutoTrigger(uint32_t latest_idx)
+{
+    if (triggered || display_buf_ready)
+    {
+        return;
+    }
+
+    if (!buffer_primed)
+    {
+        return;
+    }
+
+    if ((HAL_GetTick() - scope_start_tick_ms) >= scope_auto_trigger_timeout_ms)
+    {
+        scope_auto_triggered = 1;
+
+        /* Use the most recent sample position as the end reference.
+           Choose trigger_index so the copied window ends at latest_idx. */
+        trigger_index = (latest_idx + ADC_BUF_LEN - POST_TRIGGER_SAMPLES) % ADC_BUF_LEN;
+
+        triggered = 1;
+        samples_after_trigger = POST_TRIGGER_SAMPLES;
+
+        Scope_CopyTriggeredWindow(trigger_index);
+    }
+}
+
 static void Scope_ProcessSamples(uint32_t start, uint32_t end)
 {
     for (uint32_t i = start; i < end; i++)
     {
         uint16_t sample = adc_buf[i];
 
+        samples_seen++;
+        if (samples_seen >= ADC_BUF_LEN)
+        {
+            buffer_primed = 1;
+        }
+
         if (!triggered)
         {
-            if ((prev_sample < trigger_level) && (sample >= trigger_level))
+            if (buffer_primed && (prev_sample < trigger_level) && (sample >= trigger_level))
             {
                 triggered = 1;
                 trigger_index = i;
@@ -142,9 +187,14 @@ static void Scope_ProcessSamples(uint32_t start, uint32_t end)
         }
 
         prev_sample = sample;
+
+        Scope_CheckAutoTrigger(i);
+        if (display_buf_ready)
+        {
+            return;
+        }
     }
 }
-
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
 {
     if (hadc->Instance == ADC1)

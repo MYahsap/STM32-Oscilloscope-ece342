@@ -9,5 +9,6 @@
 ../Core/Src/ssd1306.c:113:6:SSD1306_Stopscroll	24	static
 ../Core/Src/ssd1306.c:118:6:SSD1306_Putc	40	static
 ../Core/Src/ssd1306.c:136:19:SSD1306_Puts	32	static
-../Core/Src/ssd1306.c:155:6:draw_Wave	56	static
-../Core/Src/ssd1306.c:168:6:buffer_Set	16	static
+../Core/Src/ssd1306.c:155:6:drawLine	48	static
+../Core/Src/ssd1306.c:190:6:draw_Wave	48	static
+../Core/Src/ssd1306.c:224:6:buffer_Set	16	static

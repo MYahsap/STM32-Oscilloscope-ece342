@@ -66,7 +66,7 @@ SSD1306_t oled2;
 //Scope Settings
 uint32_t hdiv = 200; //in us
 int16_t hoffset = 0; //in us
-uint32_t vdiv = 2500; //in mV
+uint32_t vdiv = 2000; //in mV
 int16_t voffset = 0; //in mV
 uint32_t triglvl = 2500; //in adc
 
@@ -208,18 +208,18 @@ int main(void)
 	      {
 	          display_buf_ready = 0;
 
-//	          buffer_Set(&oled1, Scopebackground);
-	          SSD1306_Clear(&oled1);
+	          buffer_Set(&oled1, Scopebackground);
+//	          SSD1306_Clear(&oled1);
 			  draw_Wave(&oled1, display_buf, vdiv, voffset);
 			  SSD1306_UpdateScreen(&oled1);
 
-//			  for (int i = 0; i < DISPLAY_BUF_LEN; i++)
-//				  {
-//					  sprintf(msg, "%u ", display_buf[i]);
-//					  print_msg(msg);
-//				  }
-//			  print_msg("\r\n");
-	          HAL_Delay(500);
+			  for (int i = 0; i < DISPLAY_BUF_LEN; i++)
+				  {
+					  sprintf(msg, "%u ", display_buf[i]);
+					  print_msg(msg);
+				  }
+			  print_msg("\r\n");
+	          HAL_Delay(100);
 	          Scope_Start();
 	      }
     /* USER CODE END WHILE */
@@ -543,6 +543,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
 
@@ -552,18 +553,18 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(USB_PowerSwitchOn_GPIO_Port, USB_PowerSwitchOn_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : USER_Btn_Pin */
-  GPIO_InitStruct.Pin = USER_Btn_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(USER_Btn_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pins : LD1_Pin LD3_Pin LD2_Pin */
   GPIO_InitStruct.Pin = LD1_Pin|LD3_Pin|LD2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : btn1_Pin btn2_Pin btn3_Pin btn4_Pin */
+  GPIO_InitStruct.Pin = btn1_Pin|btn2_Pin|btn3_Pin|btn4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pin : USB_PowerSwitchOn_Pin */
   GPIO_InitStruct.Pin = USB_PowerSwitchOn_Pin;

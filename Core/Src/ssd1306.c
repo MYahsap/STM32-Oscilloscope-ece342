@@ -152,16 +152,72 @@ HAL_StatusTypeDef SSD1306_Puts(SSD1306_t* dev, char* str, FontDef_t* Font) {
     return HAL_OK;
 }
 
-void draw_Wave(SSD1306_t* dev, uint16_t waveBuffer[], uint32_t vdiv, uint32_t voffset){
+void drawLine(SSD1306_t* dev, int x0, int y0, int x1, int y1)
+{
+    int dx = (x1 > x0) ? (x1 - x0) : (x0 - x1);
+    int sx = (x0 < x1) ? 1 : -1;
+    int dy = (y1 > y0) ? -(y1 - y0) : -(y0 - y1);
+    int sy = (y0 < y1) ? 1 : -1;
+    int err = dx + dy;
+    int e2;
+
+    while (1)
+    {
+        if (x0 >= 0 && x0 < SSD1306_WIDTH && y0 >= 0 && y0 < SSD1306_HEIGHT)
+        {
+            SSD1306_DrawPixel(dev, x0, y0, SSD1306_COLOR_WHITE);
+        }
+
+        if (x0 == x1 && y0 == y1)
+            break;
+
+        e2 = 2 * err;
+
+        if (e2 >= dy)
+        {
+            err += dy;
+            x0 += sx;
+        }
+
+        if (e2 <= dx)
+        {
+            err += dx;
+            y0 += sy;
+        }
+    }
+}
+
+void draw_Wave(SSD1306_t* dev, uint16_t waveBuffer[], uint32_t vdiv, int16_t voffset)
+{
 	uint16_t i;
-	float x;
-	uint8_t toDraw;
-	for (i = 0; i < 128; i++){
-		x = ((waveBuffer[i] - 2048) * 2500.0 / vdiv) + 2048 + (voffset / 2500);
-		toDraw = SSD1306_HEIGHT-(x/64);
-		if (toDraw < SSD1306_HEIGHT){
-			SSD1306_DrawPixel(dev, i, toDraw, SSD1306_COLOR_WHITE);
+	float vin_mV;
+	float y_f;
+	int16_t y;
+	int16_t prev_y = 0;
+	int16_t center = SSD1306_HEIGHT / 2;
+
+	for (i = 0; i < 128; i++)
+	{
+		// ADC 0..4095 -> -5000mV..+5000mV
+		vin_mV = ((float)waveBuffer[i] * 10000.0f / 4095.0f) - 5000.0f;
+
+		// volts -> pixels
+		y_f = center - ((vin_mV - (float)voffset) * 32.0f / (float)vdiv);
+		y = (int16_t)(y_f + 0.5f);
+
+		if (y < 0) y = 0;
+		if (y >= SSD1306_HEIGHT) y = SSD1306_HEIGHT - 1;
+
+		if (i > 0)
+		{
+			drawLine(dev, i - 1, prev_y, i, y);
 		}
+		else
+		{
+			SSD1306_DrawPixel(dev, i, y, SSD1306_COLOR_WHITE);
+		}
+
+		prev_y = y;
 	}
 }
 
