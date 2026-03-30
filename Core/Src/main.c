@@ -117,8 +117,8 @@ void Update_OLED_Measurements(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 void Calculate_Measurements(void) {
-    uint16_t max_adc = 0;
-    uint16_t min_adc = 4095;
+    uint16_t max_adc = 4095;
+    uint16_t min_adc = 0;
     int zero_crossings = 0;
 
     for(int i = 0; i < DISPLAY_BUF_LEN; i++){

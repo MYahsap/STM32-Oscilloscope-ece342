@@ -1269,11 +1269,11 @@ void Calculate_Measurements(void) {
  8000f50:	b480      	push	{r7}
  8000f52:	b085      	sub	sp, #20
  8000f54:	af00      	add	r7, sp, #0
-    uint16_t max_adc = 0;
- 8000f56:	2300      	movs	r3, #0
- 8000f58:	81fb      	strh	r3, [r7, #14]
-    uint16_t min_adc = 4095;
- 8000f5a:	f640 73ff 	movw	r3, #4095	@ 0xfff
+    uint16_t max_adc = 4095;
+ 8000f56:	f640 73ff 	movw	r3, #4095	@ 0xfff
+ 8000f5a:	81fb      	strh	r3, [r7, #14]
+    uint16_t min_adc = 0;
+ 8000f5c:	2300      	movs	r3, #0
  8000f5e:	81bb      	strh	r3, [r7, #12]
     int zero_crossings = 0;
  8000f60:	2300      	movs	r3, #0
