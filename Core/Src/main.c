@@ -264,7 +264,9 @@ int main(void)
   //oled 2 home screen!!!
   SSD1306_Clear(&oled2);
   SSD1306_SetCursor(&oled2, 0, 0);
-  SSD1306_Puts(&oled2,"ECE342\nPRJECT DEMO", &Font_11x18);
+  SSD1306_Puts(&oled2,"ECE342", &Font_11x18);
+  SSD1306_SetCursor(&oled2, 0, 20);
+  SSD1306_Puts(&oled2,"PRJECT DEMO", &Font_11x18);
   SSD1306_SetCursor(&oled2, 0, 50);
   //SSD1306_GotoXY(0, 50);
   SSD1306_Puts(&oled2,"By Thariq n Yusuf", &Font_7x10);
