@@ -92,6 +92,11 @@ uint8_t update_display_flag = 1;
 //Measurement Variables
 float freq = 0.0, v_max = 0.0, v_min = 0.0, v_pp = 0.0;
 
+//trigger mode
+volatile uint8_t trigger_mode = 0;//0 = Auto, 1 = Normal (Triggered)
+uint32_t trig_timeout = 0;
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -111,37 +116,37 @@ void Update_OLED_Measurements(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void Calculate_Measurements(void){
+void Calculate_Measurements(void) {
     uint16_t max_adc = 0;
     uint16_t min_adc = 4095;
     int zero_crossings = 0;
 
-    for (int i = 0; i < DISPLAY_BUF_LEN; i++){
+    for (int i = 0; i < DISPLAY_BUF_LEN; i++) {
         if (display_buf[i] > max_adc) max_adc = display_buf[i];
         if (display_buf[i] < min_adc) min_adc = display_buf[i];
 
-        // Zero-crossing detection (Centered around 2048 for 1.65V)
+        // Zero-crossing (centered at 2048)
         if (i > 0) {
-            if (display_buf[i-1] < 2048 && display_buf[i] >= 2048){
+            //Only count rising edge crossing to get full cycles
+            if (display_buf[i-1] < 2048 && display_buf[i] >= 2048) {
                 zero_crossings++;
             }
         }
     }
 
-    //Convert ADC to Voltage (Assumes 3.3V VCC)
-    v_max = (max_adc / 4095.0f) * 3.3f;
-    v_min = (min_adc / 4095.0f) * 3.3f;
+    // Vpp Calculation
+    v_max = ((float)max_adc / 4095.0f) * 3.3f;
+    v_min = ((float)min_adc / 4095.0f) * 3.3f;
     v_pp = v_max - v_min;
 
-    // Simple frequency estimation based on DISPLAY_BUF_LEN and hdiv
-    if (zero_crossings > 0) {
-        //Frequency=Cycles/Total Time of buffer
-        //Note: This math is a placeholder depending on your specific sampling rate
-        freq = (float)zero_crossings * (1000000.0f / (hdiv * 10.0f)); 
+    // Frequency Fix:
+    if (zero_crossings > 0 && hdiv > 0) {
+        //use 128 samples. If each sample is (hdiv/32) microseconds:
+        float total_time_us = 128.0f * ((float)hdiv / 32.0f); 
+        freq = (float)zero_crossings * (1000000.0f / total_time_us);
     } else {
         freq = 0;
     }
-
 }
 
 void Update_OLED_Measurements(void){
@@ -176,6 +181,14 @@ void Update_OLED_Measurements(void){
         SSD1306_SetCursor(&oled2, 115, 5 + (i * 12));
         char temp[2] = {side_text[i], '\0'};
         SSD1306_Puts(&oled2, temp, &Font_7x10);
+    }
+
+    //trigger
+    SSD1306_SetCursor(&oled2, 0, 54);
+    if (trigger_mode) {
+        SSD1306_Puts(&oled2, "MODE: NORM-TRIG", &Font_7x10);
+    } else {
+        SSD1306_Puts(&oled2, "MODE: AUTO", &Font_7x10);
     }
 
     SSD1306_UpdateScreen(&oled2);
@@ -307,21 +320,27 @@ int main(void)
     if (btn1_pressed){ // Reset 
         vdiv = 2000; hdiv = 200;
         Scope_SetSamplingPeriodUs(hdiv/32);
-        btn1_pressed = 0; update_display_flag = 1;
+        btn1_pressed = 0; 
+        update_display_flag = 1;
     }
     if (btn2_pressed){ // Reserved for future use (e.g. Pause/Run)
+        trigger_mode = !trigger_mode;//toggle
         btn2_pressed = 0;
+        update_display_flag = 1;
+
     }
     if (btn3_pressed){//Vertical Scale
         vdiv += 500;
         if(vdiv > 5000) vdiv = 500;
-        btn3_pressed = 0; update_display_flag = 1;
+        btn3_pressed = 0; 
+        update_display_flag = 1;
     }
     if (btn4_pressed){//Horizontal Scale
         hdiv += 100;
         if(hdiv > 1000) hdiv = 100;
         Scope_SetSamplingPeriodUs(hdiv/32);//Tell hardware to slow down sampling
-        btn4_pressed = 0; update_display_flag = 1;
+        btn4_pressed = 0; 
+        update_display_flag = 1;
     }
 
 
@@ -331,12 +350,22 @@ int main(void)
 
             Calculate_Measurements();// calcualtions 
 
+            //trigg part 
+            if(!trigger_mode || v_pp > 0.1f){
+              buffer_Set(&oled1, Scopebackground);
+              draw_Wave(&oled1, (uint16_t*)display_buf, vdiv, voffset);
+              SSD1306_UpdateScreen(&oled1);
+              Update_OLED_Measurements();
+            }
+/*
 	          buffer_Set(&oled1, Scopebackground);
 //	          SSD1306_Clear(&oled1);
+
 			  draw_Wave(&oled1, display_buf, vdiv, voffset);
 			  SSD1306_UpdateScreen(&oled1);
 
         Update_OLED_Measurements();//update OLED 2...
+        */
 
 			  for (int i = 0; i < DISPLAY_BUF_LEN; i++)
 				  {
