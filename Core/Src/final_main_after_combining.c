@@ -716,27 +716,27 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pins : LD1_Pin LD3_Pin LD2_Pin */
   GPIO_InitStruct.Pin = LD1_Pin|LD3_Pin|LD2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : btn1_Pin btn2_Pin btn3_Pin btn4_Pin */
   GPIO_InitStruct.Pin = btn1_Pin|btn2_Pin|btn3_Pin|btn4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pin : USB_PowerSwitchOn_Pin */
   GPIO_InitStruct.Pin = USB_PowerSwitchOn_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(USB_PowerSwitchOn_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : USB_OverCurrent_Pin */
   GPIO_InitStruct.Pin = USB_OverCurrent_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(USB_OverCurrent_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
@@ -754,13 +754,25 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     uint32_t now = HAL_GetTick();
     //Debouncing; 200ms
     if (now - last_press_time > 200) {
-        if (GPIO_Pin == GPIO_PIN_10) btn1_pressed = 1;
-        else if (GPIO_Pin == GPIO_PIN_11) btn2_pressed = 1;
-        else if (GPIO_Pin == GPIO_PIN_12) btn3_pressed = 1;
-        else if (GPIO_Pin == GPIO_PIN_13) btn4_pressed = 1;
+        if (GPIO_Pin == GPIO_PIN_10){
+          btn1_pressed = 1;
+          HAL_GPIO_TogglePin(GPIOB, LD1_Pin);
+        }
+        else if (GPIO_Pin == GPIO_PIN_11){
+          btn2_pressed = 1;
+        }
+        else if (GPIO_Pin == GPIO_PIN_12){
+          btn3_pressed = 1;
+          HAL_GPIO_TogglePin(GPIOB, LD2_Pin);
+        }
+        else if (GPIO_Pin == GPIO_PIN_13){
+          btn4_pressed = 1;
+          HAL_GPIO_TogglePin(GPIOB, LD3_Pin);
+
+        }
         
         last_press_time = now;
-        HAL_GPIO_TogglePin(GPIOB, LD1_Pin); //Toggle LED to see if press is recognised
+        //HAL_GPIO_TogglePin(GPIOB, LD1_Pin); //Toggle LED to see if press is recognised
     }
 }
 /* USER CODE END 4 */
