@@ -81,7 +81,7 @@ char msg[64];
 
 //OLED 2 stuff--------------------------------------------
 
-//Buttons & Timing Flags
+//Buttons and Timing Flags
 volatile uint32_t last_press_time = 0;
 volatile uint8_t btn1_pressed = 0;
 volatile uint8_t btn2_pressed = 0;
@@ -93,7 +93,7 @@ uint8_t update_display_flag = 1;
 float freq = 0.0, v_max = 0.0, v_min = 0.0, v_pp = 0.0;
 
 //trigger mode
-volatile uint8_t trigger_mode = 0;//0 = Auto, 1 = Normal (Triggered)
+//volatile uint8_t trigger_mode = 0;//0 = Auto, 1 = Normal Triggered
 uint32_t trig_timeout = 0;
 
 
@@ -121,12 +121,12 @@ void Calculate_Measurements(void) {
     uint16_t min_adc = 4095;
     int zero_crossings = 0;
 
-    for (int i = 0; i < DISPLAY_BUF_LEN; i++) {
-        if (display_buf[i] > max_adc) max_adc = display_buf[i];
-        if (display_buf[i] < min_adc) min_adc = display_buf[i];
+    for(int i = 0; i < DISPLAY_BUF_LEN; i++){
+        if(display_buf[i] > max_adc) max_adc = display_buf[i];
+        if(display_buf[i] < min_adc) min_adc = display_buf[i];
 
         // Zero-crossing (centered at 2048)
-        if (i > 0) {
+        if(i > 0) {
             //Only count rising edge crossing to get full cycles
             if (display_buf[i-1] < 2048 && display_buf[i] >= 2048) {
                 zero_crossings++;
@@ -134,17 +134,17 @@ void Calculate_Measurements(void) {
         }
     }
 
-    // Vpp Calculation
+    //vpp calculationss
     v_max = ((float)max_adc / 4095.0f) * 3.3f;
     v_min = ((float)min_adc / 4095.0f) * 3.3f;
     v_pp = v_max - v_min;
 
-    // Frequency Fix:
-    if (zero_crossings > 0 && hdiv > 0) {
-        //use 128 samples. If each sample is (hdiv/32) microseconds:
+    //fixed the freq calculations
+    if(zero_crossings > 0 && hdiv > 0) {
+        //use 128 samples If each sample is (hdiv/32) microseconds
         float total_time_us = 128.0f * ((float)hdiv / 32.0f); 
         freq = (float)zero_crossings * (1000000.0f / total_time_us);
-    } else {
+    }else{
         freq = 0;
     }
 }
@@ -184,12 +184,22 @@ void Update_OLED_Measurements(void){
     }
 
     //trigger
+    /*
     SSD1306_SetCursor(&oled2, 0, 54);
     if (trigger_mode) {
         SSD1306_Puts(&oled2, "MODE: NORM-TRIG", &Font_7x10);
     } else {
         SSD1306_Puts(&oled2, "MODE: AUTO", &Font_7x10);
-    }
+    }*/
+
+    //check sign for display
+    char sign = (trig_volts < 0) ? '-' : '+';
+    float abs_trig = fabsf(trig_volts);
+    int trig_i = (int)abs_trig;
+    int trig_d = (int)((abs_trig - trig_i) * 100);
+    SSD1306_SetCursor(&oled2, 0, 54); 
+    sprintf(buf, "Trig: %c%d.%02dV", sign, trig_i, trig_d);
+    SSD1306_Puts(&oled2, buf, &Font_7x10);
 
     SSD1306_UpdateScreen(&oled2);
 }
@@ -317,25 +327,28 @@ int main(void)
 
     //oled 2 settigs
     //1) Check for Hardware Button Inputs (Port E, Pins 10-13)
-    if (btn1_pressed){ // Reset 
+    if(btn1_pressed){ //Reset 
         vdiv = 2000; hdiv = 200;
         Scope_SetSamplingPeriodUs(hdiv/32);
         btn1_pressed = 0; 
         update_display_flag = 1;
     }
-    if (btn2_pressed){ // Reserved for future use (e.g. Pause/Run)
-        trigger_mode = !trigger_mode;//toggle
+    if(btn2_pressed){
+        triglvl += 400;// 1V increments
+        if(triglvl>4095){
+          triglvl=0;
+        }
         btn2_pressed = 0;
         update_display_flag = 1;
 
     }
-    if (btn3_pressed){//Vertical Scale
+    if(btn3_pressed){//Vertical Scale
         vdiv += 500;
         if(vdiv > 5000) vdiv = 500;
         btn3_pressed = 0; 
         update_display_flag = 1;
     }
-    if (btn4_pressed){//Horizontal Scale
+    if(btn4_pressed){//Horizontal Scale
         hdiv += 100;
         if(hdiv > 1000) hdiv = 100;
         Scope_SetSamplingPeriodUs(hdiv/32);//Tell hardware to slow down sampling
@@ -349,15 +362,15 @@ int main(void)
 	          display_buf_ready = 0;
 
             Calculate_Measurements();// calcualtions 
-
+            /*
             //trigg part 
             if(!trigger_mode || v_pp > 0.1f){
               buffer_Set(&oled1, Scopebackground);
               draw_Wave(&oled1, (uint16_t*)display_buf, vdiv, voffset);
               SSD1306_UpdateScreen(&oled1);
               Update_OLED_Measurements();
-            }
-/*
+            }*/
+
 	          buffer_Set(&oled1, Scopebackground);
 //	          SSD1306_Clear(&oled1);
 
@@ -365,7 +378,7 @@ int main(void)
 			  SSD1306_UpdateScreen(&oled1);
 
         Update_OLED_Measurements();//update OLED 2...
-        */
+        
 
 			  for (int i = 0; i < DISPLAY_BUF_LEN; i++)
 				  {
@@ -378,7 +391,7 @@ int main(void)
 	      }
 
     //Forced UI refresh if settings changed but no signal present
-    if (update_display_flag) {
+    if(update_display_flag) {
         Update_OLED_Measurements();
         update_display_flag = 0;
     }
@@ -753,22 +766,21 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     uint32_t now = HAL_GetTick();
     //Debouncing; 200ms
-    if (now - last_press_time > 200) {
-        if (GPIO_Pin == GPIO_PIN_10){
+    if(now - last_press_time > 200) {
+        if(GPIO_Pin == GPIO_PIN_10){
           btn1_pressed = 1;
           HAL_GPIO_TogglePin(GPIOB, LD1_Pin);
         }
-        else if (GPIO_Pin == GPIO_PIN_11){
+        else if(GPIO_Pin == GPIO_PIN_11){
           btn2_pressed = 1;
         }
-        else if (GPIO_Pin == GPIO_PIN_12){
+        else if(GPIO_Pin == GPIO_PIN_12){
           btn3_pressed = 1;
           HAL_GPIO_TogglePin(GPIOB, LD2_Pin);
         }
-        else if (GPIO_Pin == GPIO_PIN_13){
+        else if(GPIO_Pin == GPIO_PIN_13){
           btn4_pressed = 1;
           HAL_GPIO_TogglePin(GPIOB, LD3_Pin);
-
         }
         
         last_press_time = now;
