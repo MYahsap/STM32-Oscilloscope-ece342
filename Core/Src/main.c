@@ -78,6 +78,25 @@ extern volatile uint8_t adc_full_ready;
 //test wave
 uint16_t testSin[128];
 char msg[64];
+
+//OLED 2 stuff--------------------------------------------
+
+//Buttons and Timing Flags
+volatile uint32_t last_press_time = 0;
+volatile uint8_t btn1_pressed = 0;
+volatile uint8_t btn2_pressed = 0;
+volatile uint8_t btn3_pressed = 0;
+volatile uint8_t btn4_pressed = 0;
+uint8_t update_display_flag = 1;
+
+//Measurement Variables
+float freq = 0.0, v_max = 0.0, v_min = 0.0, v_pp = 0.0;
+
+//trigger mode
+//volatile uint8_t trigger_mode = 0;//0 = Auto, 1 = Normal Triggered
+uint32_t trig_timeout = 0;
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -91,12 +110,100 @@ static void MX_I2C2_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
-
+void Calculate_Measurements(void);
+void Update_OLED_Measurements(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void Calculate_Measurements(void) {
+    uint16_t max_adc = 0;
+    uint16_t min_adc = 4095;
+    int zero_crossings = 0;
 
+    for(int i = 0; i < DISPLAY_BUF_LEN; i++){
+        if(display_buf[i] > max_adc) max_adc = display_buf[i];
+        if(display_buf[i] < min_adc) min_adc = display_buf[i];
+
+        // Zero-crossing (centered at 2048)
+        if(i > 0) {
+            //Only count rising edge crossing to get full cycles
+            if (display_buf[i-1] < 2048 && display_buf[i] >= 2048) {
+                zero_crossings++;
+            }
+        }
+    }
+
+    //vpp calculationss
+    v_max = ((float)max_adc / 4095.0f) * 3.3f;
+    v_min = ((float)min_adc / 4095.0f) * 3.3f;
+    v_pp = v_max - v_min;
+
+    //fixed the freq calculations
+    if(zero_crossings > 0 && hdiv > 0) {
+        //use 128 samples If each sample is (hdiv/32) microseconds
+        float total_time_us = 128.0f * ((float)hdiv / 32.0f);
+        freq = (float)zero_crossings * (1000000.0f / total_time_us);
+    }else{
+        freq = 0;
+    }
+}
+
+void Update_OLED_Measurements(void){
+    SSD1306_Fill(&oled2, SSD1306_COLOR_BLACK);
+    SSD1306_SetCursor(&oled2, 0, 0);
+    //had to correct hte way the output sprintf is done
+    char buf[32];
+    //Vertical Scale
+    sprintf(buf, "V: %lumV/div", vdiv);
+    SSD1306_Puts(&oled2, buf, &Font_7x10);
+
+    //Horizontal Scale
+    SSD1306_SetCursor(&oled2, 0, 12);
+    sprintf(buf, "H: %luus/div", hdiv);
+    SSD1306_Puts(&oled2, buf, &Font_7x10);
+
+    //Vpp (Integer + 2 decimals)
+    SSD1306_SetCursor(&oled2, 0, 30);
+    int vpp_i = (int)v_pp;
+    int vpp_d = (int)((v_pp - vpp_i) * 100);
+    sprintf(buf, "Vpp: %d.%02dV", vpp_i, vpp_d);
+    SSD1306_Puts(&oled2, buf, &Font_7x10);
+
+    //Frequency
+    SSD1306_SetCursor(&oled2, 0, 42);
+    sprintf(buf, "Freq: %dHz", (int)freq);
+    SSD1306_Puts(&oled2, buf, &Font_7x10);
+
+    //Vertical Header on right side
+    const char* side_text = "SCOPE";
+    for (int i = 0; side_text[i] != '\0'; i++) {
+        SSD1306_SetCursor(&oled2, 115, 5 + (i * 12));
+        char temp[2] = {side_text[i], '\0'};
+        SSD1306_Puts(&oled2, temp, &Font_7x10);
+    }
+
+    //trigger
+    /*
+    SSD1306_SetCursor(&oled2, 0, 54);
+    if (trigger_mode) {
+        SSD1306_Puts(&oled2, "MODE: NORM-TRIG", &Font_7x10);
+    } else {
+        SSD1306_Puts(&oled2, "MODE: AUTO", &Font_7x10);
+    }*/
+
+    //check sign for display
+    float trig_volts = ((float)triglvl / 4095.0f * 10.0f)-5.0f;
+    char sign = (trig_volts < 0) ? '-' : '+';
+    float abs_trig = fabsf(trig_volts);
+    int trig_i = (int)abs_trig;
+    int trig_d = (int)((abs_trig - trig_i) * 100);
+    SSD1306_SetCursor(&oled2, 0, 54);
+    sprintf(buf, "Trig: %c%d.%02dV", sign, trig_i, trig_d);
+    SSD1306_Puts(&oled2, buf, &Font_7x10);
+
+    SSD1306_UpdateScreen(&oled2);
+}
 /* USER CODE END 0 */
 
 /**
@@ -154,6 +261,21 @@ int main(void)
   SSD1306_SetCursor(&oled2, 0, 0);
   SSD1306_Puts(&oled2, "OLED on I2C2 \r\n settings", &Font_7x10);
   SSD1306_UpdateScreen(&oled2);
+  //oled 2 home screen!!!
+  SSD1306_Clear(&oled2);
+  SSD1306_SetCursor(&oled2, 0, 0);
+  SSD1306_Puts(&oled2,"ECE342\nPRJECT DEMO", &Font_11x18);
+  SSD1306_SetCursor(&oled2, 0, 50);
+  //SSD1306_GotoXY(0, 50);
+  SSD1306_Puts(&oled2,"By Thariq n Yusuf", &Font_7x10);
+  SSD1306_UpdateScreen(&oled2);
+
+  SSD1306_Scroll(&oled2, SSD1306_SCROLL_RIGHT, 0, 7);
+  HAL_Delay(3500);
+  SSD1306_Scroll(&oled2, SSD1306_SCROLL_LEFT, 0, 7);
+  HAL_Delay(3500);
+  SSD1306_Stopscroll(&oled2);
+  //oend of oled  2 home screen!!!
 
   buffer_Set(&oled1, Scopebackground);
   for (int i = 0; i < 128; i++)testSin[i] = (900 * (sin(i / 10.0)))+2048; // ~ 2.2V
@@ -204,14 +326,61 @@ int main(void)
 //		  SSD1306_UpdateScreen(&oled1);
 //	  }
 
+    //oled 2 settigs
+    //1) Check for Hardware Button Inputs (Port E, Pins 10-13)
+    if(btn1_pressed){ //Reset
+        vdiv = 2000; hdiv = 200;
+        Scope_SetSamplingPeriodUs(hdiv/32);
+        btn1_pressed = 0;
+        update_display_flag = 1;
+    }
+    if(btn2_pressed){
+        triglvl += 400;// 1V increments
+        if(triglvl>4095){
+          triglvl=0;
+        }
+        btn2_pressed = 0;
+        update_display_flag = 1;
+        Scope_SetTriggerLevel(triglvl);
+
+    }
+    if(btn3_pressed){//Vertical Scale
+        vdiv += 500;
+        if(vdiv > 5000) vdiv = 500;
+        btn3_pressed = 0;
+        update_display_flag = 1;
+    }
+    if(btn4_pressed){//Horizontal Scale
+        hdiv += 100;
+        if(hdiv > 1000) hdiv = 100;
+        Scope_SetSamplingPeriodUs(hdiv/32);//Tell hardware to slow down sampling
+        btn4_pressed = 0;
+        update_display_flag = 1;
+    }
+
+
 	  if (display_buf_ready)
 	      {
 	          display_buf_ready = 0;
 
+            Calculate_Measurements();// calcualtions
+            /*
+            //trigg part
+            if(!trigger_mode || v_pp > 0.1f){
+              buffer_Set(&oled1, Scopebackground);
+              draw_Wave(&oled1, (uint16_t*)display_buf, vdiv, voffset);
+              SSD1306_UpdateScreen(&oled1);
+              Update_OLED_Measurements();
+            }*/
+
 	          buffer_Set(&oled1, Scopebackground);
 //	          SSD1306_Clear(&oled1);
+
 			  draw_Wave(&oled1, display_buf, vdiv, voffset);
 			  SSD1306_UpdateScreen(&oled1);
+
+        Update_OLED_Measurements();//update OLED 2...
+
 
 			  for (int i = 0; i < DISPLAY_BUF_LEN; i++)
 				  {
@@ -222,6 +391,12 @@ int main(void)
 	          HAL_Delay(100);
 	          Scope_Start();
 	      }
+
+    //Forced UI refresh if settings changed but no signal present
+    if(update_display_flag) {
+        Update_OLED_Measurements();
+        update_display_flag = 0;
+    }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -556,28 +731,32 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pins : LD1_Pin LD3_Pin LD2_Pin */
   GPIO_InitStruct.Pin = LD1_Pin|LD3_Pin|LD2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : btn1_Pin btn2_Pin btn3_Pin btn4_Pin */
   GPIO_InitStruct.Pin = btn1_Pin|btn2_Pin|btn3_Pin|btn4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pin : USB_PowerSwitchOn_Pin */
   GPIO_InitStruct.Pin = USB_PowerSwitchOn_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(USB_PowerSwitchOn_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : USB_OverCurrent_Pin */
   GPIO_InitStruct.Pin = USB_OverCurrent_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(USB_OverCurrent_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -585,7 +764,31 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    uint32_t now = HAL_GetTick();
+    //Debouncing; 200ms
+    if(now - last_press_time > 200) {
+        if(GPIO_Pin == GPIO_PIN_10){
+          btn1_pressed = 1;
+          HAL_GPIO_TogglePin(GPIOB, LD1_Pin);
+        }
+        else if(GPIO_Pin == GPIO_PIN_11){
+          btn2_pressed = 1;
+        }
+        else if(GPIO_Pin == GPIO_PIN_12){
+          btn3_pressed = 1;
+          HAL_GPIO_TogglePin(GPIOB, LD2_Pin);
+        }
+        else if(GPIO_Pin == GPIO_PIN_13){
+          btn4_pressed = 1;
+          HAL_GPIO_TogglePin(GPIOB, LD3_Pin);
+        }
 
+        last_press_time = now;
+        //HAL_GPIO_TogglePin(GPIOB, LD1_Pin); //Toggle LED to see if press is recognised
+    }
+}
 /* USER CODE END 4 */
 
 /**
