@@ -243,6 +243,9 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
+
+  // ----------------- Init -----------------
+
   //SSD2306 Init
   if (SSD1306_Init(&oled1, &hi2c1, SSD1306_I2C_ADDR) != 0) Error_Handler();
   if (SSD1306_Init(&oled2, &hi2c2, SSD1306_I2C_ADDR) != 0) Error_Handler();
@@ -252,23 +255,18 @@ int main(void)
   SSD1306_UpdateScreen(&oled2);
 
   //Scope Init
-  Scope_Init(84000000);    // example timer clock, use your real TIM2 input clock
-  Scope_SetSamplingPeriodUs(hdiv/32);   // 100 us = 10 kHz
+  Scope_Init(84000000);
+  Scope_SetSamplingPeriodUs(hdiv/16);
   Scope_SetTriggerLevel(triglvl);
   Scope_Start();
 
-  //Test oled
-  SSD1306_SetCursor(&oled2, 0, 0);
-  SSD1306_Puts(&oled2, "OLED on I2C2 \r\n settings", &Font_7x10);
-  SSD1306_UpdateScreen(&oled2);
-  //oled 2 home screen!!!
+  // ----------------- Splash Screen -----------------
   SSD1306_Clear(&oled2);
   SSD1306_SetCursor(&oled2, 0, 0);
   SSD1306_Puts(&oled2,"ECE342", &Font_11x18);
   SSD1306_SetCursor(&oled2, 0, 20);
   SSD1306_Puts(&oled2,"PRJECT DEMO", &Font_11x18);
   SSD1306_SetCursor(&oled2, 0, 50);
-  //SSD1306_GotoXY(0, 50);
   SSD1306_Puts(&oled2,"By Thariq n Yusuf", &Font_7x10);
   SSD1306_UpdateScreen(&oled2);
 
@@ -277,12 +275,6 @@ int main(void)
   SSD1306_Scroll(&oled2, SSD1306_SCROLL_LEFT, 0, 7);
   HAL_Delay(3500);
   SSD1306_Stopscroll(&oled2);
-  //oend of oled  2 home screen!!!
-
-  buffer_Set(&oled1, Scopebackground);
-  for (int i = 0; i < 128; i++)testSin[i] = (900 * (sin(i / 10.0)))+2048; // ~ 2.2V
-  draw_Wave(&oled1, testSin, vdiv, voffset);
-  SSD1306_UpdateScreen(&oled1);
 
   /* USER CODE END 2 */
 
@@ -290,46 +282,9 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-//	  if (HAL_GPIO_ReadPin(USER_Btn_GPIO_Port, USER_Btn_Pin) == GPIO_PIN_SET){
-//		  print_msg("trig!\r\n");
-//		  sprintf(msg, "PSC=%lu ARR=%lu fs=%lu\r\n",
-//		          htim2.Init.Prescaler,
-//		          __HAL_TIM_GET_AUTORELOAD(&htim2),
-//		          scope_current_fs);
-//		  print_msg(msg);
 //
-//
-//		  uint32_t t0, t1;
-//
-//		  adc_full_ready = 0;
-//		  adc_half_ready = 0;
-//		  Scope_Start();
-//
-//		  t0 = HAL_GetTick();
-//
-//		  while (adc_half_ready == 0){}
-//		  t1 = HAL_GetTick();
-//		  sprintf(msg, "half time = %lu ms\r\n", t1 - t0);
-//		  print_msg(msg);
-//
-//		  while (adc_full_ready == 0){}
-//		  t1 = HAL_GetTick();
-//		  sprintf(msg, "full time = %lu ms\r\n", t1 - t0);
-//		  print_msg(msg);
-//
-//		  for (int i = 0; i < ADC_BUF_LEN; i++) {
-//			  sprintf(msg, "%u ", adc_buf[i]);
-//			  print_msg(msg);
-//		  }
-//		  print_msg("\r\n");
-//
-//		  buffer_Set(&oled1, Scopebackground);
-//		  draw_Wave(&oled1, adc_buf, vdiv, voffset);
-//		  SSD1306_UpdateScreen(&oled1);
-//	  }
-
-    //oled 2 settigs
-    //1) Check for Hardware Button Inputs (Port E, Pins 10-13)
+	// ----------------- Settings Screen -----------------
+    // Check for Hardware Button Inputs (Port E, Pins 10-13)
     if(btn1_pressed){ //Reset
         vdiv = 2000; hdiv = 200;
         Scope_SetSamplingPeriodUs(hdiv/32);
@@ -344,7 +299,6 @@ int main(void)
         btn2_pressed = 0;
         update_display_flag = 1;
         Scope_SetTriggerLevel(triglvl);
-
     }
     if(btn3_pressed){//Vertical Scale
         vdiv += 500;
@@ -355,30 +309,25 @@ int main(void)
     if(btn4_pressed){//Horizontal Scale
         hdiv += 100;
         if(hdiv > 1000) hdiv = 100;
-        Scope_SetSamplingPeriodUs(hdiv/32);//Tell hardware to slow down sampling
+        Scope_SetSamplingPeriodUs(hdiv/16);//Tell hardware to slow down sampling
         btn4_pressed = 0;
         update_display_flag = 1;
     }
 
+    // ----------------- Scope Triggered -----------------
+	if (display_buf_ready){
+		display_buf_ready = 0;
+		Calculate_Measurements();
+		Update_OLED_Measurements();//update OLED 2...
 
-	  if (display_buf_ready)
-	      {
-	          display_buf_ready = 0;
+		buffer_Set(&oled1, Scopebackground);
+		draw_Wave(&oled1, display_buf, vdiv, voffset);
+		SSD1306_UpdateScreen(&oled1);
 
-            Calculate_Measurements();// calcualtions
+		Scope_Start();
+	}
 
-	          buffer_Set(&oled1, Scopebackground);
-//	          SSD1306_Clear(&oled1);
-
-			  draw_Wave(&oled1, display_buf, vdiv, voffset);
-			  SSD1306_UpdateScreen(&oled1);
-
-			  Update_OLED_Measurements();//update OLED 2...
-
-	          Scope_Start();
-	      }
-
-    //Forced UI refresh if settings changed but no signal present
+    // ----------------- Forced UI refresh -----------------
     if(update_display_flag) {
         Update_OLED_Measurements();
         update_display_flag = 0;
@@ -757,22 +706,20 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     if(now - last_press_time > 200) {
         if(GPIO_Pin == GPIO_PIN_10){
           btn1_pressed = 1;
-          HAL_GPIO_TogglePin(GPIOB, LD1_Pin);
+          HAL_GPIO_TogglePin(GPIOB, LD1_Pin); //Debug
         }
         else if(GPIO_Pin == GPIO_PIN_11){
           btn2_pressed = 1;
         }
         else if(GPIO_Pin == GPIO_PIN_12){
           btn3_pressed = 1;
-          HAL_GPIO_TogglePin(GPIOB, LD2_Pin);
+          HAL_GPIO_TogglePin(GPIOB, LD2_Pin); //Debug
         }
         else if(GPIO_Pin == GPIO_PIN_13){
           btn4_pressed = 1;
-          HAL_GPIO_TogglePin(GPIOB, LD3_Pin);
+          HAL_GPIO_TogglePin(GPIOB, LD3_Pin); //Debug
         }
-
         last_press_time = now;
-        //HAL_GPIO_TogglePin(GPIOB, LD1_Pin); //Toggle LED to see if press is recognised
     }
 }
 /* USER CODE END 4 */
