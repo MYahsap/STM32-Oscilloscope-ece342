@@ -202,7 +202,7 @@ void draw_Wave(SSD1306_t* dev, uint16_t waveBuffer[], uint32_t vdiv, int16_t vof
 		vin_mV = ((float)waveBuffer[i] * 10000.0f / 4095.0f) - 5000.0f;
 
 		// volts -> pixels
-		y_f = center - ((vin_mV - (float)voffset) * 32.0f / (float)vdiv);
+		y_f = center - ((vin_mV - (float)voffset) * 16.0f / (float)vdiv);
 		y = (int16_t)(y_f + 0.5f);
 
 		if (y < 0) y = 0;

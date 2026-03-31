@@ -68,7 +68,7 @@ uint32_t hdiv = 200; //in us
 int16_t hoffset = 0; //in us
 uint32_t vdiv = 2000; //in mV
 int16_t voffset = 0; //in mV
-uint32_t triglvl = 2500; //in adc
+uint32_t triglvl = 2048; //in adc
 
 //scope
 extern volatile uint16_t adc_buf[ADC_BUF_LEN];
@@ -117,8 +117,8 @@ void Update_OLED_Measurements(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 void Calculate_Measurements(void) {
-    uint16_t max_adc = 4095;
-    uint16_t min_adc = 0;
+    uint16_t max_adc = 0;
+    uint16_t min_adc = 4095;
     int zero_crossings = 0;
 
     for(int i = 0; i < DISPLAY_BUF_LEN; i++){
@@ -135,8 +135,8 @@ void Calculate_Measurements(void) {
     }
 
     //vpp calculationss
-    v_max = ((float)max_adc / 4095.0f) * 3.3f;
-    v_min = ((float)min_adc / 4095.0f) * 3.3f;
+    v_max = ((float)max_adc / 4095.0f) * 10;
+    v_min = ((float)min_adc / 4095.0f) * 10;
     v_pp = v_max - v_min;
 
     //fixed the freq calculations
@@ -366,14 +366,6 @@ int main(void)
 	          display_buf_ready = 0;
 
             Calculate_Measurements();// calcualtions
-            /*
-            //trigg part
-            if(!trigger_mode || v_pp > 0.1f){
-              buffer_Set(&oled1, Scopebackground);
-              draw_Wave(&oled1, (uint16_t*)display_buf, vdiv, voffset);
-              SSD1306_UpdateScreen(&oled1);
-              Update_OLED_Measurements();
-            }*/
 
 	          buffer_Set(&oled1, Scopebackground);
 //	          SSD1306_Clear(&oled1);
@@ -381,16 +373,8 @@ int main(void)
 			  draw_Wave(&oled1, display_buf, vdiv, voffset);
 			  SSD1306_UpdateScreen(&oled1);
 
-        Update_OLED_Measurements();//update OLED 2...
+			  Update_OLED_Measurements();//update OLED 2...
 
-
-			  for (int i = 0; i < DISPLAY_BUF_LEN; i++)
-				  {
-					  sprintf(msg, "%u ", display_buf[i]);
-					  print_msg(msg);
-				  }
-			  print_msg("\r\n");
-	          HAL_Delay(100);
 	          Scope_Start();
 	      }
 
