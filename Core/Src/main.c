@@ -137,7 +137,7 @@ void Calculate_Measurements(void) {
     //vpp calculationss
     v_max = ((float)max_adc / 4095.0f) * 10;
     v_min = ((float)min_adc / 4095.0f) * 10;
-    v_pp = v_max - v_min;
+    v_pp = 2*(v_max - v_min);
 
     //fixed the freq calculations
     if(zero_crossings > 0 && hdiv > 0) {
