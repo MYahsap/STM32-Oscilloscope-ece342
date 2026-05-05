@@ -102,6 +102,6 @@ Connecting high-voltage inputs may damage the system and pose safety risks.
 
 ---
 
-## ⭐ Demo (Optional)
+## ⭐ Demo
 
-_Add images/videos here if available!_
+_https://drive.google.com/drive/folders/14siSGnDFwhnzH1Lk1-8TJdkh_tfUSIDt_
