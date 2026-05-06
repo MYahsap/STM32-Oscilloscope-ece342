@@ -1,4 +1,4 @@
-# 📊 STM32 Dual-Screen Oscilloscope (ECE342)
+# 📊 STM32 Dual-Screen Oscilloscope
 
 A **dual-screen digital oscilloscope** built on the STM32F446ZE microcontroller. This project demonstrates real-time signal acquisition, visualization, and measurement using embedded systems concepts like ADC, DMA, interrupts, and I2C communication.
 
